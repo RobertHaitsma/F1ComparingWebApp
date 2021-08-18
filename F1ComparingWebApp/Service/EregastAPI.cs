@@ -17,6 +17,7 @@ namespace F1ComparingWebApp.Service
     {
         public Task<QualifyingData> GetQualifyingOfCurrentSeasonAsync();
         public Task<DriverQualifyingData> GetQualifiyingOfCurrentSeasonByDriver(string driver);
+        public Task<DriverRaceResultsData> GetRaceResultsOfCurrentSeasonByDriver(string driver);
 
     }
 
@@ -31,6 +32,15 @@ namespace F1ComparingWebApp.Service
         public EregastAPI(ILogger<EregastAPI> logger)
         {
             _logger = logger;
+        }
+
+        public async Task<DriverRaceResultsData> GetRaceResultsOfCurrentSeasonByDriver(string driver)
+        {
+            var response = await GetJsonResponse(RootUrl, $"/current/drivers/{driver}/results", Type);
+
+            DriverRaceResultsData driverRaceResultData = JsonConvert.DeserializeObject<DriverRaceResultsData>(response);
+
+            return driverRaceResultData;
         }
 
         public async Task<QualifyingData> GetQualifyingOfCurrentSeasonAsync()

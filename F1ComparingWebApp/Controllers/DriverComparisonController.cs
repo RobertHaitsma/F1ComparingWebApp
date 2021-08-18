@@ -1,6 +1,7 @@
 ﻿using F1ComparingWebApp.Models;
 using F1ComparingWebApp.Models.Partials;
 using F1ComparingWebApp.Service;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -22,6 +23,8 @@ namespace F1ComparingWebApp.Controllers
         {
             var firstDriverQualifyingData = await _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("max_verstappen");
             var secondDriverQualifyingData = await _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("alonso");
+            var firstDriverRaceResultsData = await _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("max_verstappen");
+            var secondDriverRaceResultsData = await _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("alonso");
 
             var driverComparisonModel = new DriverComparisonModel()
             {
@@ -29,19 +32,23 @@ namespace F1ComparingWebApp.Controllers
                 Driver2Name = secondDriverQualifyingData.MrData.RaceTable.Races.FirstOrDefault().QualifyingResult.Driver.GivenName,
                 Driver1GPdata = firstDriverQualifyingData.MrData.RaceTable.Races.Select(x => new DriverCompareGPData()
                 {
+                    Round = x.Round,
                     Q1Time = x.QualifyingResult.Q1,
                     Q2Time = x.QualifyingResult.Q2,
                     Q3Time = x.QualifyingResult.Q3,
                     GPName = x.RaceName,
                     FastestTime = GetFastestTime(x.QualifyingResult.Q1, x.QualifyingResult.Q2, x.QualifyingResult.Q3),
-            }),
+                    GPDriverResults = GetGPDriverResults(x.Round, firstDriverRaceResultsData)
+                }),
                 Driver2GPdata = secondDriverQualifyingData.MrData.RaceTable.Races.Select(y => new DriverCompareGPData()
                 {
+                    Round = y.Round,
                     Q1Time = y.QualifyingResult.Q1,
                     Q2Time = y.QualifyingResult.Q2,
                     Q3Time = y.QualifyingResult.Q3,
                     GPName = y.RaceName,
-                    FastestTime = GetFastestTime(y.QualifyingResult.Q1, y.QualifyingResult.Q2, y.QualifyingResult.Q3)
+                    FastestTime = GetFastestTime(y.QualifyingResult.Q1, y.QualifyingResult.Q2, y.QualifyingResult.Q3),
+                    GPDriverResults = GetGPDriverResults(y.Round, secondDriverRaceResultsData)
                 })
             };
 
@@ -53,6 +60,32 @@ namespace F1ComparingWebApp.Controllers
 
             return View(driverComparisonModel);
         }
+
+        private GPDriverResults GetGPDriverResults(long round, DriverRaceResultsData driverRaceResults)
+        {
+            var raceData = driverRaceResults.MrData.RaceTable.Races.FirstOrDefault(z => z.Round == round).Result;
+
+            return new GPDriverResults()
+            {
+                GPStartingPos = raceData.Grid,
+                GPFastestRaceLap = raceData?.FastestLap?.Rank == 1,
+                GPPoints = raceData.Points,
+                GPFinishedPos = raceData.Position,
+                GPTimeToLeader = raceData.Time != null ? raceData?.Time?.Time : "",
+                GPFastestRaceLapTime = raceData?.FastestLap?.Time.Time,
+            };
+        }
+
+
+        //public string GPStartingPos { get; set; }
+
+        //public string GPFinishedPos { get; set; }
+
+        //public string GPPoints { get; set; }
+
+        //public string GPTimeToLeader { get; set; }
+
+        //public bool GPFastestRaceLap { get; set; }
 
         private static DateTime GetFastestTime(string q1Time, string q2Time, string q3Time)
         {
