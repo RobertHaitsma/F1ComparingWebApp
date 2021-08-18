@@ -1,4 +1,6 @@
-﻿namespace F1ComparingWebApp.Models
+﻿using System;
+
+namespace F1ComparingWebApp.Models
 {
     public class DriverCompareGPData
     {
@@ -7,7 +9,8 @@
         public string Q2Time { get; set; }
         public string Q3Time { get; set; }
 
-        public string FastestTime { get; set; }
+        public DateTime FastestTime { get; set; }
+        public string FastestTimeDeficit { get; set; }
 
     }
 }

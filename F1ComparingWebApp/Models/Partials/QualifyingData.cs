@@ -72,7 +72,9 @@ namespace F1ComparingWebApp.Models.Partials
 
         [JsonProperty("QualifyingResults")]
         public QualifyingResult[] QualifyingResults { get; set; }
-    }
+
+        public QualifyingResult QualifyingResult { get => this.QualifyingResults.FirstOrDefault(); set => QualifyingResult = value; }
+}
 
     public partial class Circuit
     {
