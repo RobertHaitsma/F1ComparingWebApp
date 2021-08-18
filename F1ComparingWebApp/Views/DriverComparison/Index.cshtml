@@ -1,2 +1,28 @@
 ﻿@model DriverComparisonModel
 
+    <div class="row">
+
+        <div class="col-6">
+            <h3>@Model.Driver1Name</h3>
+
+            @foreach (var item in Model.Driver1GPdata)
+            {
+                <h4>@item.GPName</h4>
+                <p>Q1: @item.Q1Time</p>
+                <p>Q2: @item.Q2Time</p>
+                <p>Q3: @item.Q3Time</p>
+            }
+        </div>
+
+        <div class="col-6">
+            <h3>@Model.Driver2Name</h3>
+
+            @foreach (var item in Model.Driver2GPdata)
+            {
+                <h4>@item.GPName</h4>
+                <p>Q1: @item.Q1Time</p>
+                <p>Q2: @item.Q2Time</p>
+                <p>Q3: @item.Q3Time</p>
+            }
+        </div>
+    </div>
