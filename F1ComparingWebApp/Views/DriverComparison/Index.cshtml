@@ -1,36 +1,45 @@
 ﻿@model DriverComparisonModel
 
-    <div class="row">
+<div class="row">
 
-        <div class="col-6">
-            <h3>@Model.Driver1Name</h3>
+    <div class="col-6">
+        <h3>@Model.Driver1Name</h3>
 
-            @foreach (var item in Model.Driver1GPdata)
-            {
-                <h4>@item.GPName</h4>
-                <p>Q1: @item.Q1Time</p>
-                <p>Q2: @item.Q2Time</p>
-                <p>Q3: @item.Q3Time</p>
-                <br />
-                <p>Fastest Time: @item.FastestTime.ToString("m:ss.fff")</p>
-                <hr />
-                <p>Time Deficit: @item.FastestTimeDeficit</p>
-            }
-        </div>
-
-        <div class="col-6">
-            <h3>@Model.Driver2Name</h3>
-
-            @foreach (var item in Model.Driver2GPdata)
-            {
-                <h4>@item.GPName</h4>
-                <p>Q1: @item.Q1Time</p>
-                <p>Q2: @item.Q2Time</p>
-                <p>Q3: @item.Q3Time</p>
-                <br />
-                <p>Fastest Time: @item.FastestTime.ToString("m:ss.fff")</p>
-                <hr />
-                <p>Time Deficit: @item.FastestTimeDeficit</p>
-            }
-        </div>
+        @foreach (var item in Model.Driver1GPdata)
+        {
+            RenderDriversGpData(item);
+        }
     </div>
+
+    <div class="col-6">
+        <h3>@Model.Driver2Name</h3>
+
+        @foreach (var item in Model.Driver2GPdata)
+        {
+            RenderDriversGpData(item);
+        }
+    </div>
+</div>
+
+@{
+    void RenderDriversGpData(DriverCompareGPData item)
+    {
+        var collaspeTarget = item.GPName.Replace(" ", "-");
+        <h4>@item.GPName</h4>
+
+        <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#@collaspeTarget" aria-expanded="false" aria-controls="collapseExample">
+            Qualifying times
+        </button>
+        <div class="collapse" id="@collaspeTarget">
+            <div class="card card-body">
+                <p>Q1: @item.Q1Time</p>
+                <p>Q2: @item.Q2Time</p>
+                <p>Q3: @item.Q3Time</p>
+                <br />
+                <p>Fastest Time: @item.FastestTime.ToString("m:ss.fff")</p>
+                <hr />
+                <p>Time Deficit: @item.FastestTimeDeficit</p>
+            </div>
+        </div>
+    }
+}
