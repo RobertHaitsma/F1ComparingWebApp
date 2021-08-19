@@ -1,4 +1,5 @@
-﻿using F1ComparingWebApp.Models;
+﻿using F1ComparingWebApp.Helpers;
+using F1ComparingWebApp.Models;
 using F1ComparingWebApp.Models.Partials;
 using F1ComparingWebApp.Service;
 using Microsoft.AspNetCore.Http;
@@ -13,18 +14,32 @@ namespace F1ComparingWebApp.Controllers
     public class DriverComparisonController : Controller
     {
         private readonly IEregastAPI _eregastAPI;
+        private CacheHelper _cacheHelper;
 
-        public DriverComparisonController(IEregastAPI eregastAPI)
+        public DriverComparisonController(IEregastAPI eregastAPI, CacheHelper cache)
         {
             _eregastAPI = eregastAPI;
+            _cacheHelper = cache;
         }
 
-        public async Task<IActionResult> IndexAsync()
+        public IActionResult Index()
         {
-            var firstDriverQualifyingData = await _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("max_verstappen");
-            var secondDriverQualifyingData = await _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("alonso");
-            var firstDriverRaceResultsData = await _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("max_verstappen");
-            var secondDriverRaceResultsData = await _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("alonso");
+            var firstDriverQualifyingData = _cacheHelper.CachedResult("quali-max_verstappen", () => 
+            {
+                return AsyncHelper.RunSync(() => _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("max_verstappen")); 
+            }, new TimeSpan(0, 10, 0));
+            var secondDriverQualifyingData = _cacheHelper.CachedResult("quali-alonso", () =>
+            {
+                return AsyncHelper.RunSync(() => _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("alonso"));
+            }, new TimeSpan(0, 10, 0));
+            var firstDriverRaceResultsData = _cacheHelper.CachedResult("races-max_verstappen", () =>
+            {
+                return AsyncHelper.RunSync(() => _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("max_verstappen"));
+            }, new TimeSpan(0, 10, 0));
+            var secondDriverRaceResultsData = _cacheHelper.CachedResult("races-alonso", () =>
+            {
+                return AsyncHelper.RunSync(() => _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("alonso"));
+            }, new TimeSpan(0, 10, 0));
 
             var driverComparisonModel = new DriverComparisonModel()
             {

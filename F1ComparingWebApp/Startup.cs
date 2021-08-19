@@ -1,3 +1,4 @@
+using F1ComparingWebApp.Helpers;
 using F1ComparingWebApp.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -25,6 +26,7 @@ namespace F1ComparingWebApp
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<IEregastAPI, EregastAPI>();
+            services.AddSingleton<CacheHelper, CacheHelper>();
 
             services.AddControllersWithViews();
         }
