@@ -52,7 +52,7 @@ namespace F1ComparingWebApp.Controllers
                     Q2Time = x.QualifyingResult.Q2,
                     Q3Time = x.QualifyingResult.Q3,
                     GPName = x.RaceName,
-                    FastestTime = GetFastestTime(x.QualifyingResult.Q1, x.QualifyingResult.Q2, x.QualifyingResult.Q3),
+                    FastestTime = GetFastestTime(new List<string>() { x.QualifyingResult.Q1, x.QualifyingResult.Q2, x.QualifyingResult.Q3 }),
                     GPDriverResults = GetGPDriverResults(x.Round, firstDriverRaceResultsData)
                 }),
                 Driver2GPdata = secondDriverQualifyingData.MrData.RaceTable.Races.Select(y => new DriverCompareGPData()
@@ -62,7 +62,7 @@ namespace F1ComparingWebApp.Controllers
                     Q2Time = y.QualifyingResult.Q2,
                     Q3Time = y.QualifyingResult.Q3,
                     GPName = y.RaceName,
-                    FastestTime = GetFastestTime(y.QualifyingResult.Q1, y.QualifyingResult.Q2, y.QualifyingResult.Q3),
+                    FastestTime = GetFastestTime(new List<string>() { y.QualifyingResult.Q1, y.QualifyingResult.Q2, y.QualifyingResult.Q3 }),
                     GPDriverResults = GetGPDriverResults(y.Round, secondDriverRaceResultsData)
                 })
             };
@@ -113,6 +113,20 @@ namespace F1ComparingWebApp.Controllers
             return fastestTime;
         }
 
+        //made a different implementation of this method. When in the future a q4 will be added, by using this function only one change has to be made, where the old function this would be 3 places
+        private static DateTime GetFastestTime(IEnumerable<string> times)
+        {
+            IEnumerable<DateTime> dateTimes = new List<DateTime>();
+
+            foreach(var time in times)
+            {
+                DateTime.TryParseExact(time, "m:ss.fff", null, System.Globalization.DateTimeStyles.None, out var dateTime);
+                dateTimes.Append(dateTime);
+            }
+
+            //filter times that are 00:00:00, this will happen when a timing is empty
+            return dateTimes.Where(x => x != new DateTime()).Min();
+        }
         private static string GetFastestTimeDeficit(DateTime driver1FastestTime, DateTime driver2FastestTime)
         {
             var timeDeficit = driver1FastestTime - driver2FastestTime;
