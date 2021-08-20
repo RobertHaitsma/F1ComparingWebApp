@@ -9,6 +9,8 @@ namespace F1ComparingWebApp.Models
     {
         public string Driver1Name { get; set; }
 
+        public IEnumerable<Tuple<string, string>> DriverList { get; set; }
+
         public string Driver2Name { get; set; }
 
         public IEnumerable<DriverCompareGPData> Driver1GPdata { get; set; }

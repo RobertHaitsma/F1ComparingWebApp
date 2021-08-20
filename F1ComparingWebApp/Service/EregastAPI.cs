@@ -18,6 +18,7 @@ namespace F1ComparingWebApp.Service
         public Task<QualifyingData> GetQualifyingOfCurrentSeasonAsync();
         public Task<DriverQualifyingData> GetQualifiyingOfCurrentSeasonByDriver(string driver);
         public Task<DriverRaceResultsData> GetRaceResultsOfCurrentSeasonByDriver(string driver);
+        public Task<DriversInSeasonData> GetDriverOfCurrentSeason();
 
     }
 
@@ -60,6 +61,15 @@ namespace F1ComparingWebApp.Service
 
             return driverQualifyingData;
         } 
+
+        public async Task<DriversInSeasonData> GetDriverOfCurrentSeason()
+        {
+            var response = await GetJsonResponse(RootUrl, $"/current/drivers/", Type);
+
+            DriversInSeasonData driversInSeason = JsonConvert.DeserializeObject<DriversInSeasonData>(response);
+
+            return driversInSeason;
+        }
 
         private static async Task<string> GetJsonResponse(string rootUrl, string url, string type)
         {

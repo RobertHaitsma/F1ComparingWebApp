@@ -1,6 +1,7 @@
 ﻿using F1ComparingWebApp.Helpers;
 using F1ComparingWebApp.Models;
 using F1ComparingWebApp.Models.Partials;
+using F1ComparingWebApp.Models.Partials.F1;
 using F1ComparingWebApp.Service;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,29 +23,95 @@ namespace F1ComparingWebApp.Controllers
             _cacheHelper = cache;
         }
 
+        [HttpGet]
         public IActionResult Index()
         {
-            var firstDriverQualifyingData = _cacheHelper.CachedResult("quali-max_verstappen", () => 
+            //by default use max and lewis - future change this to appSettings key
+            var driverComparisonModel = GetDriverComparisonModel("max_verstappen", "hamilton");
+
+            driverComparisonModel.Driver1GPdata.Select(gp => 
+            { 
+                gp.FastestTimeDeficit = GetFastestTimeDeficit(gp.FastestTime, driverComparisonModel.Driver2GPdata.FirstOrDefault(x => x.GPName == gp.GPName).FastestTime); 
+                return gp; 
+            }).ToList();
+
+            return View(driverComparisonModel);
+        }
+
+        private string GetDriversName(Driver driver) 
+        {
+            return driver.GivenName + " " + driver.FamilyName;
+        }
+
+        private IEnumerable<Tuple<string, string>> SetDriverNamesAndId(DriversInSeasonData driversInSeason)
+        {
+            return driversInSeason.MrData.DriverTable.Drivers.Select(x =>
             {
-                return AsyncHelper.RunSync(() => _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("max_verstappen")); 
+                return new Tuple<string, string>(x.DriverId, x.GivenName + " " + x.FamilyName);
+            });
+        }
+
+        private GPDriverResults GetGPDriverResults(long round, DriverRaceResultsData driverRaceResults)
+        {
+            var raceData = driverRaceResults.MrData.RaceTable.Races.FirstOrDefault(z => z.Round == round).Result;
+
+            return new GPDriverResults()
+            {
+                GPStartingPos = raceData.Grid,
+                GPFastestRaceLap = raceData?.FastestLap?.Rank == 1,
+                GPPoints = raceData.Points,
+                GPFinishedPos = raceData.Position,
+                GPTimeToLeader = raceData.Time != null ? raceData?.Time?.Time : "",
+                GPFastestRaceLapTime = raceData?.FastestLap?.Time.Time,
+            };
+        }
+
+        //made a different implementation of this method. When in the future a q4 will be added, by using this function only one change has to be made, where the old function this would be 3 places
+        private static DateTime GetFastestTime(IEnumerable<string> times)
+        {
+            return times.Select(x =>
+            {
+                DateTime.TryParseExact(x, "m:ss.fff", null, System.Globalization.DateTimeStyles.None, out var dateTime);
+                return dateTime;
+            }).Where(y => y != new DateTime()).Min();
+        }
+
+        private static string GetFastestTimeDeficit(DateTime driver1FastestTime, DateTime driver2FastestTime)
+        {
+            var timeDeficit = driver1FastestTime - driver2FastestTime;
+
+            return timeDeficit.TotalSeconds.ToString();
+        }
+
+        private DriverComparisonModel GetDriverComparisonModel(string firstDriverId, string secondDriverId)
+        {
+            var allDriversInCurrentSeason = _cacheHelper.CachedResult("drivers-current-season", () =>
+            {
+                return AsyncHelper.RunSync(() => _eregastAPI.GetDriverOfCurrentSeason());
+            }, new TimeSpan(12, 0, 0));
+
+            var firstDriverQualifyingData = _cacheHelper.CachedResult($"quali-{firstDriverId}", () =>
+            {
+                return AsyncHelper.RunSync(() => _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver(firstDriverId));
             }, new TimeSpan(0, 10, 0));
-            var secondDriverQualifyingData = _cacheHelper.CachedResult("quali-alonso", () =>
+            var secondDriverQualifyingData = _cacheHelper.CachedResult($"quali-{secondDriverId}", () =>
             {
-                return AsyncHelper.RunSync(() => _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver("alonso"));
+                return AsyncHelper.RunSync(() => _eregastAPI.GetQualifiyingOfCurrentSeasonByDriver(secondDriverId));
             }, new TimeSpan(0, 10, 0));
-            var firstDriverRaceResultsData = _cacheHelper.CachedResult("races-max_verstappen", () =>
+            var firstDriverRaceResultsData = _cacheHelper.CachedResult($"races-{firstDriverId}", () =>
             {
-                return AsyncHelper.RunSync(() => _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("max_verstappen"));
+                return AsyncHelper.RunSync(() => _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver(firstDriverId));
             }, new TimeSpan(0, 10, 0));
-            var secondDriverRaceResultsData = _cacheHelper.CachedResult("races-alonso", () =>
+            var secondDriverRaceResultsData = _cacheHelper.CachedResult($"races-{secondDriverId}", () =>
             {
-                return AsyncHelper.RunSync(() => _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver("alonso"));
+                return AsyncHelper.RunSync(() => _eregastAPI.GetRaceResultsOfCurrentSeasonByDriver(secondDriverId));
             }, new TimeSpan(0, 10, 0));
 
             var driverComparisonModel = new DriverComparisonModel()
             {
-                Driver1Name = firstDriverQualifyingData.MrData.RaceTable.Races.FirstOrDefault().QualifyingResult.Driver.GivenName,
-                Driver2Name = secondDriverQualifyingData.MrData.RaceTable.Races.FirstOrDefault().QualifyingResult.Driver.GivenName,
+                DriverList = SetDriverNamesAndId(allDriversInCurrentSeason),
+                Driver1Name = GetDriversName(firstDriverQualifyingData.MrData.RaceTable.Races.FirstOrDefault().QualifyingResult.Driver),
+                Driver2Name = GetDriversName(secondDriverQualifyingData.MrData.RaceTable.Races.FirstOrDefault().QualifyingResult.Driver),
                 Driver1GPdata = firstDriverQualifyingData.MrData.RaceTable.Races.Select(x => new DriverCompareGPData()
                 {
                     Round = x.Round,
@@ -67,105 +134,16 @@ namespace F1ComparingWebApp.Controllers
                 })
             };
 
-            foreach(var gp in driverComparisonModel.Driver1GPdata)
-            {
-                var test = GetFastestTimeDeficit(gp.FastestTime, driverComparisonModel.Driver2GPdata.FirstOrDefault(x => x.GPName == gp.GPName).FastestTime);
-                gp.FastestTimeDeficit = test;
-            }
+            return driverComparisonModel;
+        }
+
+        [HttpPost]
+        public IActionResult Index(SelectedDriversModel model)
+        {
+            var driverComparisonModel = GetDriverComparisonModel(model.FirstDriverId, model.SecondDriverId);
 
             return View(driverComparisonModel);
         }
-
-        private GPDriverResults GetGPDriverResults(long round, DriverRaceResultsData driverRaceResults)
-        {
-            var raceData = driverRaceResults.MrData.RaceTable.Races.FirstOrDefault(z => z.Round == round).Result;
-
-            return new GPDriverResults()
-            {
-                GPStartingPos = raceData.Grid,
-                GPFastestRaceLap = raceData?.FastestLap?.Rank == 1,
-                GPPoints = raceData.Points,
-                GPFinishedPos = raceData.Position,
-                GPTimeToLeader = raceData.Time != null ? raceData?.Time?.Time : "",
-                GPFastestRaceLapTime = raceData?.FastestLap?.Time.Time,
-            };
-        }
-
-
-        //public string GPStartingPos { get; set; }
-
-        //public string GPFinishedPos { get; set; }
-
-        //public string GPPoints { get; set; }
-
-        //public string GPTimeToLeader { get; set; }
-
-        //public bool GPFastestRaceLap { get; set; }
-
-        private static DateTime GetFastestTime(string q1Time, string q2Time, string q3Time)
-        {
-            DateTime.TryParseExact(q1Time, "m:ss.fff", null, System.Globalization.DateTimeStyles.None, out var q1DateTime);
-            DateTime.TryParseExact(q2Time, "m:ss.fff", null, System.Globalization.DateTimeStyles.None, out var q2DateTime);
-            DateTime.TryParseExact(q3Time, "m:ss.fff", null, System.Globalization.DateTimeStyles.None, out var q3DateTime);
-
-            //filter times that are 00:00:00, this will happen when a timing is empty
-            DateTime fastestTime = new[] { q1DateTime, q2DateTime, q3DateTime }.Where(x => x != new DateTime()).Min();
-            return fastestTime;
-        }
-
-        //made a different implementation of this method. When in the future a q4 will be added, by using this function only one change has to be made, where the old function this would be 3 places
-        private static DateTime GetFastestTime(IEnumerable<string> times)
-        {
-            IEnumerable<DateTime> dateTimes = new List<DateTime>();
-
-            foreach(var time in times)
-            {
-                DateTime.TryParseExact(time, "m:ss.fff", null, System.Globalization.DateTimeStyles.None, out var dateTime);
-                dateTimes.Append(dateTime);
-            }
-
-            //filter times that are 00:00:00, this will happen when a timing is empty
-            return dateTimes.Where(x => x != new DateTime()).Min();
-        }
-        private static string GetFastestTimeDeficit(DateTime driver1FastestTime, DateTime driver2FastestTime)
-        {
-            var timeDeficit = driver1FastestTime - driver2FastestTime;
-
-            return timeDeficit.TotalSeconds.ToString();
-        }
-
-        //private DateTime GetFastestTime(DateTime time1, DateTime time2, DateTime time3)
-        //{
-        //    var fastestTime = time1;
-        //    if (time1 > time2)
-        //    {
-        //        fastestTime = time2;
-        //    }
-        //    if (time2 > time3)
-        //    {
-        //        fastestTime = time3;
-        //    }
-        //    if (time1 > time3)
-        //    {
-        //        fastestTime = time3;
-        //    }
-        //    return fastestTime;
-        //}
-
-        //private DriverComparisonModel GetDriverCompareDto(QualifyingData data)
-        //{
-        //    var numbers = ["33", "44"];
-
-        //    //return new DriverComparisonModel()
-        //    //{
-        //    //    Driver1Name = data.MrData.RaceTable.Races.Where(x => x.QualifyingResults.Where(y => y.Driver.PermanentNumber == numbers[0])),
-        //    //    Driver2Name = data.MrData.RaceTable.Races.Where(x => x.QualifyingResults.Where(y => y.Driver.PermanentNumber == numbers[1])),
-        //    //    Driver1GPdata = new DriverCompareGPData()
-        //    //    {
-        //    //        Q1Time = 
-        //    //    }
-        //    //}
-        //}
 
         [HttpPost]
         public IActionResult Drivers()

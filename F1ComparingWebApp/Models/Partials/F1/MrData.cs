@@ -28,5 +28,8 @@ namespace F1ComparingWebApp.Models.Partials.F1
 
         [JsonProperty("RaceTable")]
         public RaceTable RaceTable { get; set; }
+
+        [JsonProperty("DriverTable")]
+        public DriverTable DriverTable { get; set; }
     }
 }

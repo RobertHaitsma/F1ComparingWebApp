@@ -1,6 +1,47 @@
 ﻿@model DriverComparisonModel
 
 <div class="row">
+    <div class="col-12">
+        <form class="form-inline" method="post">
+            <label class="my-1 mr-2" for="dropdownFirstDriver">First Driver</label>
+            <select class="custom-select my-1 mr-sm-2" id="dropdownFirstDriver">
+                @foreach (var driver in Model.DriverList)
+                {
+                    var selected = driver.Item2 == Model.Driver2Name;
+                    if (driver.Item2 == Model.Driver1Name)
+                    {
+                        <option selected value="@driver.Item1">@driver.Item2</option>
+                    }
+                    else
+                    {
+
+                        <option value="@driver.Item1">@driver.Item2</option>
+                    }
+                }
+            </select>
+            <label class="my-1 mr-2" for="dropdownSecondDriver">Second Driver</label>
+            <select class="custom-select my-1 mr-sm-2" id="dropdownSecondDriver">
+                @foreach (var driver in Model.DriverList)
+                {
+                    var selected = driver.Item2 == Model.Driver2Name;
+                    if (driver.Item2 == Model.Driver2Name)
+                    {
+                        <option selected value="@driver.Item1">@driver.Item2</option>
+                    }
+                    else
+                    {
+
+                        <option value="@driver.Item1">@driver.Item2</option>
+                    }
+                }
+            </select>
+
+            <button type="submit" class="btn btn-primary">Compare!</button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
 
     <div class="col-6">
         <h3>@Model.Driver1Name</h3>
@@ -69,4 +110,5 @@
             <br />
         }
     }
+
 }
